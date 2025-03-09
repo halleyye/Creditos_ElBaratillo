@@ -19,27 +19,16 @@ def create_tables_if_not_exists():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Tabla Clients
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS Clients (
-            ClientId INTEGER PRIMARY KEY AUTOINCREMENT,
-            FirstName TEXT NOT NULL,
-            LastName TEXT NOT NULL,
-            Phone TEXT
-        )
-    """)
-
     # Tabla Credits
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Credits (
             CreditId INTEGER PRIMARY KEY AUTOINCREMENT,
-            ClientId INTEGER NOT NULL,
-            monto REAL NOT NULL,
+            ClientName TEXT NOT NULL,
+            Monto REAL NOT NULL,
             StartDate TEXT NOT NULL,
             DueDate TEXT NOT NULL,
             Status TEXT NOT NULL,
-            Notes TEXT,
-            FOREIGN KEY (ClientId) REFERENCES Clients (ClientId)
+            Notes TEXT
         )
     """)
 

@@ -3,7 +3,7 @@
 from typing import List, Optional
 from datetime import datetime
 from models.credit import Credit
-from .SQL_connect import get_db_connection
+from .db_connection import get_db_connection
 
 class CreditRepository:
 
@@ -11,7 +11,7 @@ class CreditRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         query = """
-            SELECT CreditId, ClientId, Monto, StartDate, DueDate, Status, Notes
+            SELECT CreditId, ClientName, Monto, StartDate, DueDate, Status, Notes
             FROM Credits
             WHERE CreditId = ?
         """
@@ -23,7 +23,7 @@ class CreditRepository:
         if row:
             return Credit(
                 credit_id=row["CreditId"],
-                client_id=row["ClientId"],
+                client_name=row["ClientName"],
                 monto=float(row["Monto"]),
                 start_date=datetime.fromisoformat(row["StartDate"]),
                 due_date=datetime.fromisoformat(row["DueDate"]),
@@ -36,7 +36,7 @@ class CreditRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         query = """
-            SELECT CreditId, ClientId, Monto, StartDate, DueDate, Status, Notes
+            SELECT CreditId, ClientName, Monto, StartDate, DueDate, Status, Notes
             FROM Credits
         """
         cursor.execute(query)
@@ -48,7 +48,7 @@ class CreditRepository:
         for row in rows:
             credits.append(Credit(
                 credit_id=row["CreditId"],
-                client_id=row["ClientId"],
+                client_name=row["ClientName"],
                 monto=float(row["Monto"]),
                 start_date=datetime.fromisoformat(row["StartDate"]),
                 due_date=datetime.fromisoformat(row["DueDate"]),
@@ -61,11 +61,11 @@ class CreditRepository:
         conn = get_db_connection()
         cursor = conn.cursor()
         query = """
-            INSERT INTO Credits (ClientId, Monto, StartDate, DueDate, Status, Notes)
+            INSERT INTO Credits (ClientName, Monto, StartDate, DueDate, Status, Notes)
             VALUES (?, ?, ?, ?, ?, ?)
         """
         cursor.execute(query, (
-            credit.client_id,
+            credit.client_name,
             credit.monto,
             credit.start_date.isoformat(),
             credit.due_date.isoformat(),
@@ -84,7 +84,7 @@ class CreditRepository:
         query = """
             UPDATE Credits
             SET 
-                ClientId = ?, 
+                ClientName = ?, 
                 Monto = ?, 
                 StartDate = ?, 
                 DueDate = ?, 
@@ -93,7 +93,7 @@ class CreditRepository:
             WHERE CreditId = ?
         """
         cursor.execute(query, (
-            credit.client_id,
+            credit.client_name,
             credit.monto,
             credit.start_date.isoformat(),
             credit.due_date.isoformat(),

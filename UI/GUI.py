@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import (
 )
 from business.credit_service import CreditService
 from dataDB.credit_repo import CreditRepository
-from dataDB.client_repo import ClientRepository  # Assuming you have this
 # from models.credit import Credit  # Only needed if you want to create credits here
 # from datetime import datetime, timedelta
 
@@ -19,7 +18,6 @@ class MainWindow(QMainWindow):
         # Initialize repositories and services
         self.credit_repository = CreditRepository()
         self.credit_service = CreditService(self.credit_repository)
-        self.client_repository = ClientRepository()
 
         # UI Layout
         main_widget = QWidget()

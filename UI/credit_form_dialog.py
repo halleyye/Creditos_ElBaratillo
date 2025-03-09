@@ -11,15 +11,17 @@ class CreditFormDialog(QDialog):
         self.setWindowTitle("Credit Form")
         self.setModal(True)
 
+        self.resize(400,300)
+
         self.edit_mode = credit is not None
         self.credit = credit
 
         layout = QVBoxLayout(self)
 
-        # Client ID
-        layout.addWidget(QLabel("Client ID:"))
-        self.client_id_edit = QLineEdit()
-        layout.addWidget(self.client_id_edit)
+        # Client name
+        layout.addWidget(QLabel("Nombre Cliente:"))
+        self.client_name_edit = QLineEdit()
+        layout.addWidget(self.client_name_edit)
 
         # Monto
         layout.addWidget(QLabel("Monto:"))
@@ -27,31 +29,31 @@ class CreditFormDialog(QDialog):
         layout.addWidget(self.monto_edit)
 
         # Start Date
-        layout.addWidget(QLabel("Start Date (YYYY-MM-DD):"))
+        layout.addWidget(QLabel("Fecha Inicial (AAAA-MM-DD):"))
         self.start_date_edit = QLineEdit()
         layout.addWidget(self.start_date_edit)
 
         # Due Date
-        layout.addWidget(QLabel("Due Date (YYYY-MM-DD):"))
+        layout.addWidget(QLabel("Fecha Final (AAAA-MM-DD):"))
         self.due_date_edit = QLineEdit()
         layout.addWidget(self.due_date_edit)
 
         # Status
-        layout.addWidget(QLabel("Status:"))
+        layout.addWidget(QLabel("Estado:"))
         self.status_combo = QComboBox()
         self.status_combo.addItems(["Activo", "Inactivo"])  # only 2 statuses
         layout.addWidget(self.status_combo)
 
         # Notes
-        layout.addWidget(QLabel("Notes:"))
+        layout.addWidget(QLabel("Notas:"))
         self.notes_edit = QLineEdit()
         layout.addWidget(self.notes_edit)
 
         # Buttons
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("Save")
+        save_btn = QPushButton("Guardar")
         save_btn.clicked.connect(self.save_and_close)
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton("Cancelar")
         cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addWidget(save_btn)
@@ -67,7 +69,7 @@ class CreditFormDialog(QDialog):
         """
         if not self.credit:
             return
-        self.client_id_edit.setText(str(self.credit.client_id))
+        self.client_name_edit.setText(str(self.credit.client_name))
         self.monto_edit.setText(str(self.credit.monto))
         self.start_date_edit.setText(self.credit.start_date.strftime("%Y-%m-%d"))
         self.due_date_edit.setText(self.credit.due_date.strftime("%Y-%m-%d"))
@@ -77,7 +79,7 @@ class CreditFormDialog(QDialog):
     def save_and_close(self):
         # Basic validation
         try:
-            client_id = int(self.client_id_edit.text().strip())
+            client_name = str(self.client_name_edit.text().strip())
             monto = float(self.monto_edit.text().strip())
             start_date = datetime.strptime(self.start_date_edit.text().strip(), "%Y-%m-%d")
             due_date = datetime.strptime(self.due_date_edit.text().strip(), "%Y-%m-%d")
@@ -91,7 +93,7 @@ class CreditFormDialog(QDialog):
         # Construct a new Credit object (or updated one)
         self.credit = Credit(
             credit_id=0 if not self.edit_mode else self.credit.credit_id,
-            client_id=client_id,
+            client_name=client_name,
             monto=monto,
             start_date=start_date,
             due_date=due_date,

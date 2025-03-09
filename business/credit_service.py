@@ -15,8 +15,8 @@ class CreditService:
         Make sure the 'status' is either 'Activo' or 'Inactivo'.
         """
         # If you want extra validation:
-        # if credit.status not in ("Activo", "Inactivo"):
-        #     raise ValueError("El estado de crédito debe ser 'Activo' o 'Inactivo'.")
+        if credit.status not in ("Activo", "Inactivo"):
+            raise ValueError("El estado de crédito debe ser 'Activo' o 'Inactivo'.")
         return self.credit_repository.add_credit(credit)
 
     def get_credits_due_soon(self, days_in_advance: int = 7) -> List[Credit]:

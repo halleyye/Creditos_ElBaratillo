@@ -2,7 +2,7 @@
 
 import sys
 from PyQt6.QtWidgets import QApplication
-from dataDB.SQL_connect import create_tables_if_not_exists
+from dataDB.db_connection import create_tables_if_not_exists
 from UI.dashboard_window import DashboardWindow
 
 def main():
@@ -10,7 +10,7 @@ def main():
 
     app = QApplication(sys.argv)
     window = DashboardWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec())
 
 if __name__ == "__main__":

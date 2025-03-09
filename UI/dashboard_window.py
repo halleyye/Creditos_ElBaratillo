@@ -9,7 +9,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 from business.credit_service import CreditService
 from dataDB.credit_repo import CreditRepository
-from dataDB.client_repo import ClientRepository  # your repository for clients
 
 from models.credit import Credit
 from datetime import datetime
@@ -22,7 +21,6 @@ class DashboardWindow(QMainWindow):
         # Initialize repositories & services
         self.credit_repo = CreditRepository()
         self.credit_service = CreditService(self.credit_repo)
-        self.client_repo = ClientRepository()
 
         # Main container widget
         container = QWidget()
@@ -51,6 +49,12 @@ class DashboardWindow(QMainWindow):
         self.timer.timeout.connect(self.check_due_credits)
         self.timer.start()
 
+        #refresh for top cards
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.setInterval(20_000)  # 20 seconds
+        self.refresh_timer.timeout.connect(self.refresh_top_cards)
+        self.refresh_timer.start()
+
         # Or call it once on startup:
         self.check_due_credits()
 
@@ -62,7 +66,7 @@ class DashboardWindow(QMainWindow):
         Creates a teal-like sidebar with simple navigation buttons.
         """
         sidebar = QWidget()
-        sidebar.setStyleSheet("background-color: #00bfbf;")  # approximate teal
+        sidebar.setStyleSheet("background-color: #292C2C;")  # approximate teal
         sidebar_layout = QVBoxLayout(sidebar)
 
         # Title / Logo
@@ -84,42 +88,74 @@ class DashboardWindow(QMainWindow):
         sidebar_layout.addStretch()
 
         # Footer
-        logout_btn = QPushButton("Logout")
+        logout_btn = QPushButton("Cerrar Sesion")
         logout_btn.setStyleSheet("color: white;")
         # Connect to your logout or exit if you wish
-        # logout_btn.clicked.connect(self.close)
+        logout_btn.clicked.connect(self.close)
         sidebar_layout.addWidget(logout_btn, alignment=Qt.AlignmentFlag.AlignBottom)
 
         return sidebar
 
     def create_top_cards(self):
         """
-        Creates a row of "cards" to show quick stats, like Revenue, Sales, etc.
+        Creates a row of "cards" to show quick stats, like total credits, active credits, and near due dates.
         """
-        cards_container = QWidget()
-        cards_layout = QHBoxLayout(cards_container)
+        # Store a reference to the cards container
+        self.cards_container = QWidget()
+        cards_layout = QHBoxLayout(self.cards_container)
 
-        # Example card: Revenue
-        revenue_card = self.create_info_card("$ 153,000", "Revenue")
-        cards_layout.addWidget(revenue_card)
+        # Fetch data from the repository
+        all_credits = self.credit_repo.get_all_credits()
+        active_credits = [credit for credit in all_credits if credit.status == "Activo"]
+        today = datetime.now()
+        near_due_credits = [credit for credit in all_credits if (credit.due_date - today).days <= 30]
 
-        # Example card: Sales
-        sales_card = self.create_info_card("20", "Sales")
-        cards_layout.addWidget(sales_card)
+        # Card: Total Credits
+        total_credits_card = self.create_info_card(str(len(all_credits)), "Creditos Totales")
+        cards_layout.addWidget(total_credits_card)
 
-        # Example card: Customer
-        customer_card = self.create_info_card("20", "Customer")
-        cards_layout.addWidget(customer_card)
+        # Card: Active Credits
+        active_credits_card = self.create_info_card(str(len(active_credits)), "Creditos Activos")
+        cards_layout.addWidget(active_credits_card)
 
-        # Example card: Employee
-        employee_card = self.create_info_card("20", "Employee")
-        cards_layout.addWidget(employee_card)
+        # Card: Near Due Dates
+        near_dates_card = self.create_info_card(str(len(near_due_credits)), "Fechas cercanas (menor a 1 mes)")
+        cards_layout.addWidget(near_dates_card)
 
-        self.content_layout.addWidget(cards_container)
+        # Add the cards container to the main layout
+        self.content_layout.addWidget(self.cards_container)
 
-        # Maintenance notice (optional)
-        maintenance_label = QLabel("<b style='color:red'>This template is under maintenance!</b>")
-        self.content_layout.addWidget(maintenance_label)
+    def refresh_top_cards(self):
+        """
+        Refreshes the data in the top cards without affecting the rest of the UI.
+        """
+        if not hasattr(self, 'cards_container'):
+            return  # Ensure the cards container exists
+
+        # Clear the existing cards
+        for i in reversed(range(self.cards_container.layout().count())):
+            widget = self.cards_container.layout().itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        # Fetch updated data from the repository
+        all_credits = self.credit_repo.get_all_credits()
+        active_credits = [credit for credit in all_credits if credit.status == "Activo"]
+        today = datetime.now()
+        near_due_credits = [credit for credit in all_credits if (credit.due_date - today).days <= 30]
+
+        # Card: Total Credits
+        total_credits_card = self.create_info_card(str(len(all_credits)), "Creditos Totales")
+        self.cards_container.layout().addWidget(total_credits_card)
+
+        # Card: Active Credits
+        active_credits_card = self.create_info_card(str(len(active_credits)), "Creditos Activos")
+        self.cards_container.layout().addWidget(active_credits_card)
+
+        # Card: Near Due Dates
+        near_dates_card = self.create_info_card(str(len(near_due_credits)), "Fechas cercanas (menor a 1 mes)")
+        self.cards_container.layout().addWidget(near_dates_card)
+
 
     def create_info_card(self, main_text: str, sub_text: str) -> QWidget:
         """
@@ -127,7 +163,7 @@ class DashboardWindow(QMainWindow):
         """
         card = QFrame()
         card.setFrameShape(QFrame.Shape.Box)
-        card.setStyleSheet("background-color: #f5f5f5; border-radius: 5px;")
+        card.setStyleSheet("background-color: #ADAAA8; border-radius: 5px;")
 
         layout = QVBoxLayout(card)
         main_label = QLabel(main_text)
@@ -143,14 +179,15 @@ class DashboardWindow(QMainWindow):
         Bottom section: Table of Credits + Buttons (Add, Update, Delete).
         """
         # Title
-        table_title = QLabel("Credits Registered")
+        table_title = QLabel("Creditos registrados")
         table_title.setStyleSheet("font-size: 16px; font-weight: bold;")
         self.content_layout.addWidget(table_title)
 
         # Table
         self.credits_table = QTableWidget()
-        self.credits_table.setColumnCount(6)
-        self.credits_table.setHorizontalHeaderLabels(["Credit ID", "Client ID", "Monto", "Start Date", "Due Date", "Status"])
+        self.credits_table.setColumnCount(7)
+        self.credits_table.setHorizontalHeaderLabels(["Credit ID", "Nombre Cliente", "Monto", "Fecha Inicial",
+                                                      "Fecha Final", "Estado", "Notas"])
         self.credits_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.credits_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.content_layout.addWidget(self.credits_table)
@@ -159,15 +196,15 @@ class DashboardWindow(QMainWindow):
         buttons_container = QWidget()
         buttons_layout = QHBoxLayout(buttons_container)
 
-        add_btn = QPushButton("Add Credit")
+        add_btn = QPushButton("Añadir Credito")
         add_btn.clicked.connect(self.add_credit_dialog)
         buttons_layout.addWidget(add_btn)
 
-        update_btn = QPushButton("Update Credit")
+        update_btn = QPushButton("Actualizar Credito")
         update_btn.clicked.connect(self.update_credit_dialog)
         buttons_layout.addWidget(update_btn)
 
-        delete_btn = QPushButton("Delete Credit")
+        delete_btn = QPushButton("Eliminar Credito")
         delete_btn.clicked.connect(self.delete_credit)
         buttons_layout.addWidget(delete_btn)
 
@@ -182,7 +219,7 @@ class DashboardWindow(QMainWindow):
 
         for row_idx, c in enumerate(credits):
             self.credits_table.setItem(row_idx, 0, QTableWidgetItem(str(c.credit_id)))
-            self.credits_table.setItem(row_idx, 1, QTableWidgetItem(str(c.client_id)))
+            self.credits_table.setItem(row_idx, 1, QTableWidgetItem(str(c.client_name)))
             self.credits_table.setItem(row_idx, 2, QTableWidgetItem(str(c.monto)))
             self.credits_table.setItem(row_idx, 3, QTableWidgetItem(c.start_date.isoformat()))
             self.credits_table.setItem(row_idx, 4, QTableWidgetItem(c.due_date.isoformat()))
@@ -209,30 +246,30 @@ class DashboardWindow(QMainWindow):
 
     def add_credit_dialog(self):
         """
-        Open a dialog or a simple pop-up to enter data for a new credit.
+        Open a dialog to enter data for a new credit.
         """
-        from .credit_form_dialog import CreditFormDialog  # We’ll create this file next
+        from .credit_form_dialog import CreditFormDialog
         dlg = CreditFormDialog(parent=self)
         if dlg.exec():
             # If the user clicked "Save"
             new_credit = dlg.get_credit_data()
             self.credit_service.create_credit(new_credit)
             self.load_credits_into_table()
+            self.refresh_top_cards()  # Refresh the top cards
 
     def update_credit_dialog(self):
         """
-        Updates an existing credit. We take the selected row from the table,
-        load into a form, then update in the DB.
+        Updates an existing credit.
         """
         row = self.credits_table.currentRow()
         if row < 0:
-            QMessageBox.information(self, "Update Credit", "Please select a credit to update.")
+            QMessageBox.information(self, "Actualizar credito", "Por favor, seleccione un credito a actualizar.")
             return
 
         credit_id = int(self.credits_table.item(row, 0).text())
         existing_credit = self.credit_repo.get_credit_by_id(credit_id)
         if not existing_credit:
-            QMessageBox.warning(self, "Update Credit", "Selected credit does not exist in DB.")
+            QMessageBox.warning(self, "Actualizar credito", "El credito seleccionado no existe en la base de datos.")
             return
 
         from .credit_form_dialog import CreditFormDialog
@@ -242,6 +279,7 @@ class DashboardWindow(QMainWindow):
             updated_credit.credit_id = credit_id  # Ensure ID remains the same
             self.credit_repo.update_credit(updated_credit)
             self.load_credits_into_table()
+            self.refresh_top_cards()  # Refresh the top cards
 
     def delete_credit(self):
         """
@@ -249,12 +287,13 @@ class DashboardWindow(QMainWindow):
         """
         row = self.credits_table.currentRow()
         if row < 0:
-            QMessageBox.information(self, "Delete Credit", "Please select a credit to delete.")
+            QMessageBox.information(self, "Eliminar credito", "Por favor, seleccione un credito a eliminar.")
             return
 
         credit_id = int(self.credits_table.item(row, 0).text())
-        confirm = QMessageBox.question(self, "Confirm Deletion",
-                                       f"Are you sure you want to delete Credit ID {credit_id}?")
+        confirm = QMessageBox.question(self, "Confirmar eliminacion",
+                                       f"Esta seguro de eliminar el credito {credit_id}?")
         if confirm == QMessageBox.StandardButton.Yes:
             self.credit_repo.delete_credit(credit_id)
             self.load_credits_into_table()
+            self.refresh_top_cards()  # Refresh the top cards
